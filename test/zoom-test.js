@@ -6,7 +6,7 @@ const tape = require("tape"),
 global.navigator = {};
 global.SVGElement = function(){};
 
-const document = jsdom("<body>"),
+ const document = jsdom("<body>"),
   div = d3.select(document.body).append("div").datum("hello"),
   zoom = d3.zoom(),
   identity = d3.zoomIdentity;
