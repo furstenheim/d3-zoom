@@ -1,4 +1,9 @@
-var canvas = d3.select("canvas").call(d3.zoom().scaleExtent([1, 8]).on("zoom", zoom)),
+const d3Zoom = require('../dist/d3-zoom')
+/*
+const d3Zoom = d3
+*/
+console.log(d3Zoom)
+var canvas = d3.select("canvas").call(d3Zoom.zoom().scaleExtent([1, 8]).on("zoom", zoom)),
   context = canvas.node().getContext("2d"),
   width = canvas.property("width"),
   height = canvas.property("height");
@@ -9,8 +14,8 @@ var randomX = d3.randomNormal(width / 2, 80),
 
 draw();
 
-function zoom() {
-  var transform = d3.event.transform;
+function zoom(event) {
+  var transform = event.transform;
   context.save();
   context.clearRect(0, 0, width, height);
   context.translate(transform.x, transform.y);
