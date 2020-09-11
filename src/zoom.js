@@ -107,6 +107,9 @@ export default function() {
   };
 
   zoom.scaleTo = function(selection, k, p, event) {
+
+
+
     zoom.transform(selection, function() {
       var e = extent.apply(this, arguments),
           t0 = this.__zoom,
