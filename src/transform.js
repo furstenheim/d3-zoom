@@ -4,31 +4,34 @@ export function Transform(k, x, y) {
   this.y = y;
 }
 
+import {Decimal} from 'decimal.js'
+const zero = new Decimal(0)
+const one = new Decimal(1)
 Transform.prototype = {
   constructor: Transform,
   scale: function(k) {
-    return k === 1 ? this : new Transform(this.k * k, this.x, this.y);
+    return k.equals(one) ? this : new Transform(this.k.mul(k), this.x, this.y);
   },
   translate: function(x, y) {
-    return x === 0 & y === 0 ? this : new Transform(this.k, this.x + this.k * x, this.y + this.k * y);
+    return x.equals(zero) & y.equals(zero) ? this : new Transform(this.k, this.x.sum(this.k.mul( x)), this.y.sum(this.k.mul(y)));
   },
   apply: function(point) {
-    return [point[0] * this.k + this.x, point[1] * this.k + this.y];
+    return [(point[0].mul(this.k)).add(this.x), (point[1].mul(this.k)).add(this.y)];
   },
   applyX: function(x) {
-    return x * this.k + this.x;
+    return (x.mul(this.k)).add(this.x);
   },
   applyY: function(y) {
-    return y * this.k + this.y;
+    return (y.mul(this.k)).add(this.y);
   },
   invert: function(location) {
-    return [(location[0] - this.x) / this.k, (location[1] - this.y) / this.k];
+    return [location[0].minus(this.x).div(this.k), location[1].minus(this.y).div(this.k)];
   },
   invertX: function(x) {
-    return (x - this.x) / this.k;
+    return (x.minus(this.x)).div(this.k);
   },
   invertY: function(y) {
-    return (y - this.y) / this.k;
+    return (y.minus(this.y)).div(this.k);
   },
   rescaleX: function(x) {
     return x.copy().domain(x.range().map(this.invertX, this).map(x.invert, x));
@@ -37,11 +40,11 @@ Transform.prototype = {
     return y.copy().domain(y.range().map(this.invertY, this).map(y.invert, y));
   },
   toString: function() {
-    return "translate(" + this.x + "," + this.y + ") scale(" + this.k + ")";
+    return "translate(" + this.x.toString() + "," + this.y.toString() + ") scale(" + this.k.toString() + ")";
   }
 };
 
-export var identity = new Transform(1, 0, 0);
+export var identity = new Transform(new Decimal(1), new Decimal(0), new Decimal(0));
 
 transform.prototype = Transform.prototype;
 
