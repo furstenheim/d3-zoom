@@ -44,6 +44,9 @@
     "nodemon": "^2.0.4",
     "parcel": "^1.12.4"
   },
+  "peerDependencies": {
+    "decimal.js": "^10.2.1"
+  },
   "devDependencies": {
     "eslint": "6",
     "jsdom": "^16.2.2",

@@ -1,7 +1,7 @@
 const tape = require("tape"),
     jsdom = require("./jsdom"),
     d3 = Object.assign(require("../"), require("d3-selection"), require("d3-transition"));
-
+const Decimal = require('decimal.js')
 // temporary fix (while d3-transition still requests d3-selection@1)
 d3.selection.prototype.interrupt = function(name) {
   return this.each(function() {
@@ -34,7 +34,7 @@ tape("zoom.filter receives (event, d) and filters", function(test) {
   test.equal(b, undefined); // our fake dblclick was rejected
 
   // temporary: avoid a crash due to starting a transition
-  zoom.duration(0);
+  zoom.duration(new Decimal(0));
   zoom.filter(function() { return true; });
   div.dispatch("dblclick", event);
   test.notEqual(b, undefined); // our fake dblclick was accepted

@@ -7,6 +7,7 @@ import constant from "./constant.js";
 import ZoomEvent from "./event.js";
 import {Transform, identity} from "./transform.js";
 import noevent, {nopropagation} from "./noevent.js";
+import {Decimal} from 'decimal.js'
 
 // Ignore right-click, since that should open the context menu.
 // except for pinch-to-zoom, which is sent as a wheel+ctrlKey event
@@ -20,11 +21,11 @@ function defaultExtent() {
     e = e.ownerSVGElement || e;
     if (e.hasAttribute("viewBox")) {
       e = e.viewBox.baseVal;
-      return [[e.x, e.y], [e.x + e.width, e.y + e.height]];
+      return [[new Decimal(e.x), new Decimal(e.y)], [new Decimal(e.x + e.width), new Decimal(e.y + e.height)]];
     }
-    return [[0, 0], [e.width.baseVal.value, e.height.baseVal.value]];
+    return [[new Decimal(0), new Decimal(0)], [new Decimal(e.width.baseVal.value), new Decimal(e.height.baseVal.value)]];
   }
-  return [[0, 0], [e.clientWidth, e.clientHeight]];
+  return [[new Decimal(0), new Decimal(0)], [new Decimal(e.clientWidth), new Decimal(e.clientHeight)]];
 }
 
 function defaultTransform() {
@@ -40,13 +41,13 @@ function defaultTouchable() {
 }
 
 function defaultConstrain(transform, extent, translateExtent) {
-  var dx0 = transform.invertX(extent[0][0]) - translateExtent[0][0],
-      dx1 = transform.invertX(extent[1][0]) - translateExtent[1][0],
-      dy0 = transform.invertY(extent[0][1]) - translateExtent[0][1],
-      dy1 = transform.invertY(extent[1][1]) - translateExtent[1][1];
+  var dx0 = transform.invertX(extent[0][0]).sub(translateExtent[0][0]),
+      dx1 = transform.invertX(extent[1][0]).sub(translateExtent[1][0]),
+      dy0 = transform.invertY(extent[0][1]).sub(translateExtent[0][1]),
+      dy1 = transform.invertY(extent[1][1]).sub(translateExtent[1][1]);
   return transform.translate(
-    dx1 > dx0 ? (dx0 + dx1) / 2 : Math.min(0, dx0) || Math.max(0, dx1),
-    dy1 > dy0 ? (dy0 + dy1) / 2 : Math.min(0, dy0) || Math.max(0, dy1)
+    dx1.greaterThan(dx0) ? dx0.add(dx1).div(new Decimal(2)) : (dx0.lessThan(new Decimal(0)) ? dx0 : Decimal.max(dx1, new Decimal(0))),
+    dy1.greaterThan(dy0) ? dy0.add(dy1).div(new Decimal(2)) : (dy0.lessThan(new Decimal(0)) ? dy0 : Decimal.max(new Decimal(0), dy1))
   );
 }
 
@@ -102,7 +103,7 @@ export default function() {
     zoom.scaleTo(selection, function() {
       var k0 = this.__zoom.k,
           k1 = typeof k === "function" ? k.apply(this, arguments) : k;
-      return k0 * k1;
+      return k0.mul(k1);
     }, p, event);
   };
 
@@ -135,24 +136,24 @@ export default function() {
           t = this.__zoom,
           p0 = p == null ? centroid(e) : typeof p === "function" ? p.apply(this, arguments) : p;
       return constrain(identity.translate(p0[0], p0[1]).scale(t.k).translate(
-        typeof x === "function" ? -x.apply(this, arguments) : -x,
-        typeof y === "function" ? -y.apply(this, arguments) : -y
+        typeof x === "function" ? x.apply(this, arguments).neg() : x.neg(),
+        typeof y === "function" ? y.apply(this, arguments).neg() : y.neg()
       ), e, translateExtent);
     }, p, event);
   };
 
   function scale(transform, k) {
-    k = Math.max(scaleExtent[0], Math.min(scaleExtent[1], k));
-    return k === transform.k ? transform : new Transform(k, transform.x, transform.y);
+    k = Decimal.max(scaleExtent[0], Decimal.min(scaleExtent[1], k));
+    return k.equals(transform.k) ? transform : new Transform(k, transform.x, transform.y);
   }
 
   function translate(transform, p0, p1) {
-    var x = p0[0] - p1[0] * transform.k, y = p0[1] - p1[1] * transform.k;
-    return x === transform.x && y === transform.y ? transform : new Transform(transform.k, x, y);
+    var x = p0[0].sub(p1[0].mul(transform.k)), y = p0[1].sub(p1[1].mul(transform.k));
+    return x.equals(transform.x) && y.equals(transform.y) ? transform : new Transform(transform.k, x, y);
   }
 
   function centroid(extent) {
-    return [(+extent[0][0] + +extent[1][0]) / 2, (+extent[0][1] + +extent[1][1]) / 2];
+    return [extent[0][0].add(extent[1][0]).div(new Decimal(2)), extent[0][1].add(extent[1][1]).div(new Decimal(2))];
   }
 
   function schedule(transition, transform, point, event) {
@@ -238,15 +239,18 @@ export default function() {
     if (!filter.apply(this, arguments)) return;
     var g = gesture(this, args).event(event),
         t = this.__zoom,
-        k = Math.max(scaleExtent[0], Math.min(scaleExtent[1], t.k * Math.pow(2, wheelDelta.apply(this, arguments)))),
-        p = pointer(event);
+        k = Decimal.max(scaleExtent[0], Decimal.min(scaleExtent[1], t.k.mul(new Decimal(2).pow(wheelDelta.apply(this, arguments))))),
+        pRaw = pointer(event),
+        p = [new Decimal(pRaw[0]), new Decimal(pRaw[1])];
 
     // If the mouse is in the same location as before, reuse it.
     // If there were recent wheel events, reset the wheel idle timeout.
     if (g.wheel) {
-      if (g.mouse[0][0] !== p[0] || g.mouse[0][1] !== p[1]) {
-        g.mouse[1] = t.invert(g.mouse[0] = p);
+/*
+      if (g.mouse[0][0] !== pRaw[0] || g.mouse[0][1] !== pRaw[1]) {
       }
+*/
+      g.mouse[1] = t.invert(g.mouse[0] = p);
       clearTimeout(g.wheel);
     }
 
@@ -274,10 +278,11 @@ export default function() {
     if (touchending || !filter.apply(this, arguments)) return;
     var g = gesture(this, args, true).event(event),
         v = select(event.view).on("mousemove.zoom", mousemoved, true).on("mouseup.zoom", mouseupped, true),
-        p = pointer(event, currentTarget),
+        pRaw = pointer(event, currentTarget),
+        p = [new Decimal(pRaw[0]), new Decimal(pRaw[1])],
         currentTarget = event.currentTarget,
-        x0 = event.clientX,
-        y0 = event.clientY;
+        x0 = new Decimal(event.clientX),
+        y0 = new Decimal(event.clientY);
 
     dragDisable(event.view);
     nopropagation(event);
@@ -288,11 +293,13 @@ export default function() {
     function mousemoved(event) {
       noevent(event);
       if (!g.moved) {
-        var dx = event.clientX - x0, dy = event.clientY - y0;
-        g.moved = dx * dx + dy * dy > clickDistance2;
+        var dx = new Decimal(event.clientX).sub(x0), dy = new Decimal(event.clientY).sub(y0);
+        g.moved = dx.mul(dx).add(dy.mul(dy)).greaterThan(clickDistance2);
       }
+      var endRaw = pointer(event, currentTarget)
+      var endDec = [new Decimal(endRaw[0]), new Decimal(endRaw[1])]
       g.event(event)
-       .zoom("mouse", constrain(translate(g.that.__zoom, g.mouse[0] = pointer(event, currentTarget), g.mouse[1]), g.extent, translateExtent));
+       .zoom("mouse", constrain(translate(g.that.__zoom, g.mouse[0] = endDec, g.mouse[1]), g.extent, translateExtent));
     }
 
     function mouseupped(event) {
@@ -306,9 +313,10 @@ export default function() {
   function dblclicked(event, ...args) {
     if (!filter.apply(this, arguments)) return;
     var t0 = this.__zoom,
-        p0 = pointer(event.changedTouches ? event.changedTouches[0] : event, this),
+        p0Raw = pointer(event.changedTouches ? event.changedTouches[0] : event, this),
+        p0 = [new Decimal(p0Raw[0]), new Decimal(p0Raw[1])],
         p1 = t0.invert(p0),
-        k1 = t0.k * (event.shiftKey ? 0.5 : 2),
+        k1 = t0.k.mul(event.shiftKey ? new Decimal(0.5) : new Decimal(2)),
         t1 = constrain(translate(scale(t0, k1), p0, p1), extent.apply(this, args), translateExtent);
 
     noevent(event);

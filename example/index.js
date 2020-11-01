@@ -16,6 +16,7 @@ draw();
 
 function zoom(event) {
   var transform = event.transform;
+  console.log(transform.k)
   context.save();
   context.clearRect(0, 0, width, height);
   context.translate(transform.x, transform.y);

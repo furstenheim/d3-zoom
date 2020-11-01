@@ -13,7 +13,7 @@ Transform.prototype = {
     return k.equals(one) ? this : new Transform(this.k.mul(k), this.x, this.y);
   },
   translate: function(x, y) {
-    return x.equals(zero) & y.equals(zero) ? this : new Transform(this.k, this.x.sum(this.k.mul( x)), this.y.sum(this.k.mul(y)));
+    return x.equals(zero) && y.equals(zero) ? this : new Transform(this.k, this.x.add(this.k.mul( x)), this.y.add(this.k.mul(y)));
   },
   apply: function(point) {
     return [(point[0].mul(this.k)).add(this.x), (point[1].mul(this.k)).add(this.y)];
@@ -30,6 +30,7 @@ Transform.prototype = {
   invertX: function(x) {
     return (x.minus(this.x)).div(this.k);
   },
+
   invertY: function(y) {
     return (y.minus(this.y)).div(this.k);
   },

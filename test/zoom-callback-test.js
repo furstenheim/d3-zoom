@@ -1,7 +1,7 @@
 const tape = require("tape"),
     jsdom = require("./jsdom"),
     d3 = Object.assign(require("../"), require("d3-selection"), require("d3-transition"));
-
+const Decimal = require('decimal.js')
 // temporary fix (while d3-transition still requests d3-selection@1)
 d3.selection.prototype.interrupt = function(name) {
   return this.each(function() {
@@ -24,7 +24,7 @@ tape("zoom.on('zoom') callback", function(test) {
   let a;
   zoom.on("zoom", function(event, d) { a = {event, d, that: this}; });
   div.call(zoom.transform, identity);
-  const event = { type: "zoom", sourceEvent: null, target: zoom, transform: {k: 1, x: 0, y: 0}};
+  const event = { type: "zoom", sourceEvent: null, target: zoom, transform: {k: new Decimal(1), x: new Decimal(0), y: new Decimal(0)}};
   test.deepEqual(a.event, event);
   test.equal(a.d, "hello");
   test.equal(a.that, div.node());
@@ -43,7 +43,7 @@ tape("zoom.on('start') callback", function(test) {
   let a;
   zoom.on("start", function(event, d) { a = {event, d, that: this}; });
   div.call(zoom.transform, identity);
-  const event = { type: "start", sourceEvent: null, target: zoom, transform: {k: 1, x: 0, y: 0}};
+  const event = { type: "start", sourceEvent: null, target: zoom, transform: {k: new Decimal(1), x: new Decimal(0), y: new Decimal(0)}};
   test.deepEqual(a.event, event);
   test.equal(a.d, "hello");
   test.equal(a.that, div.node());
@@ -61,7 +61,7 @@ tape("zoom.on('end') callback", function(test) {
   let a;
   zoom.on("end", function(event, d) { a = {event, d, that: this}; });
   div.call(zoom.transform, identity);
-  const event = { type: "end", sourceEvent: null, target: zoom, transform: {k: 1, x: 0, y: 0}};
+  const event = { type: "end", sourceEvent: null, target: zoom, transform: {k: new Decimal(1), x: new Decimal(0), y: new Decimal(0)}};
   test.deepEqual(a.event, event);
   test.equal(a.d, "hello");
   test.equal(a.that, div.node());
