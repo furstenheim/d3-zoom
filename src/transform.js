@@ -27,6 +27,9 @@ Transform.prototype = {
   invert: function(location) {
     return [location[0].minus(this.x).div(this.k), location[1].minus(this.y).div(this.k)];
   },
+  translateAtCoordinateSpace: function (location) {
+    return [location[0].minus(this.x), location[1].minus(this.y)];
+  },
   invertX: function(x) {
     return (x.minus(this.x)).div(this.k);
   },
