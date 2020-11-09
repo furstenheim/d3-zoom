@@ -113,7 +113,7 @@ export default function() {
           p0 = p == null ? centroid(e) : typeof p === "function" ? p.apply(this, arguments) : p,
           p1 = t0.invert(p0),
           k1 = typeof k === "function" ? k.apply(this, arguments) : k;
-      return constrain(translate(scale(t0, k1), p0, p1), e, translateExtent);
+      return constrain(translate(lowerScale(t0, k1), p0, p1), e, translateExtent);
     }, p, event);
   };
 
