@@ -143,14 +143,18 @@ export default function() {
     return k.equals(transform.k) ? transform : new Transform(k, transform.x, transform.y);
   }
 
+  function lowerScale(transform, k) {
+    k = Decimal.max(new Decimal(scaleExtent[0]), k);
+    return k.equals(transform.k) ? transform : new Transform(k, transform.x, transform.y);
+  }
+
   function translate(transform, p0, p1) {
     var x = p0[0].sub(p1[0].mul(transform.k)), y = p0[1].sub(p1[1].mul(transform.k));
     return x.equals(transform.x) && y.equals(transform.y) ? transform : new Transform(transform.k, x, y);
   }
 
-  function translateCoordinateSpace(transform, p0, p1, p2) {
-    var x = p0[0].sub(p2[0]), y = p0[1].sub(p2[1]);
-
+  function translateCoordinateSpace(transform, p0, p1, p2, scaleFactor) {
+    var x = p0[0].sub(p2[0].mul(scaleFactor)), y = p0[1].sub(p2[1].mul(scaleFactor));
     return x.equals(transform.x) && y.equals(transform.y) ? transform : new Transform(transform.k, x, y);
   }
 
@@ -241,7 +245,8 @@ export default function() {
     if (!filter.apply(this, arguments)) return;
     var g = gesture(this, args).event(event),
         t = this.__zoom,
-        k = Decimal.max(new Decimal(scaleExtent[0]), Decimal.min(new Decimal(scaleExtent[1]), t.k.mul(new Decimal(2 ** (wheelDelta.apply(this, arguments)))))),
+        scaleFactorCandidate = new Decimal(2 ** (wheelDelta.apply(this, arguments))),
+        k = Decimal.max(new Decimal(scaleExtent[0]), t.k.mul(scaleFactorCandidate)),
         pRaw = pointer(event),
         p = [new Decimal(pRaw[0]), new Decimal(pRaw[1])];
 
@@ -269,7 +274,15 @@ export default function() {
 
     noevent(event);
     g.wheel = setTimeout(wheelidled, wheelDelay);
-    g.zoom("mouse", constrain(translate(scale(t, k), g.mouse[0], g.mouse[1]), g.extent, translateExtent));
+    const previousK = t.k
+    const scaled = lowerScale(t, k)
+    let scaleFactor
+    if (scaled.k.lessThan(new Decimal(5))) {
+      scaleFactor = scaled.k.div(previousK)
+    } else {
+      scaleFactor = scaleFactorCandidate
+    }
+    g.zoom("mouse", constrain(translateCoordinateSpace(scaled, g.mouse[0], g.mouse[1], g.mouse[2], scaleFactor), g.extent, translateExtent));
 
     function wheelidled() {
       g.wheel = null;
@@ -302,7 +315,7 @@ export default function() {
       var endRaw = pointer(event, currentTarget)
       var endDec = [new Decimal(endRaw[0]), new Decimal(endRaw[1])]
       g.event(event)
-       .zoom("mouse", constrain(translateCoordinateSpace(g.that.__zoom, g.mouse[0] = endDec, null, g.mouse[2]), g.extent, translateExtent));
+       .zoom("mouse", constrain(translateCoordinateSpace(g.that.__zoom, g.mouse[0] = endDec, null, g.mouse[2], new Decimal(1)), g.extent, translateExtent));
     }
 
     function mouseupped(event) {
