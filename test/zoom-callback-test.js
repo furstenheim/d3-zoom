@@ -1,7 +1,7 @@
 const tape = require("tape"),
     jsdom = require("./jsdom"),
     d3 = Object.assign(require("../"), require("d3-selection"), require("d3-transition"));
-const Decimal = require('decimal.js')
+const { Decimal } = require('small-decimal')
 // temporary fix (while d3-transition still requests d3-selection@1)
 d3.selection.prototype.interrupt = function(name) {
   return this.each(function() {

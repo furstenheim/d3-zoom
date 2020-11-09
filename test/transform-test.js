@@ -1,4 +1,4 @@
-const Decimal  = require('decimal.js')
+const { Decimal }  = require('small-decimal')
 
 var tape = require("tape"),
     d3 = require("../"),

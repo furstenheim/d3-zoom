@@ -4,7 +4,7 @@ export function Transform(k, x, y) {
   this.y = y;
 }
 
-import {Decimal} from 'decimal.js'
+import {Decimal} from 'small-decimal'
 const zero = new Decimal(0)
 const one = new Decimal(1)
 Transform.prototype = {
@@ -25,17 +25,17 @@ Transform.prototype = {
     return (y.mul(this.k)).add(this.y);
   },
   invert: function(location) {
-    return [location[0].minus(this.x).div(this.k), location[1].minus(this.y).div(this.k)];
+    return [location[0].sub(this.x).div(this.k), location[1].sub(this.y).div(this.k)];
   },
   translateAtCoordinateSpace: function (location) {
-    return [location[0].minus(this.x), location[1].minus(this.y)];
+    return [location[0].sub(this.x), location[1].sub(this.y)];
   },
   invertX: function(x) {
-    return (x.minus(this.x)).div(this.k);
+    return (x.sub(this.x)).div(this.k);
   },
 
   invertY: function(y) {
-    return (y.minus(this.y)).div(this.k);
+    return (y.sub(this.y)).div(this.k);
   },
   rescaleX: function(x) {
     return x.copy().domain(x.range().map(this.invertX, this).map(x.invert, x));

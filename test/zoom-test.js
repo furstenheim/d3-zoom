@@ -1,7 +1,7 @@
 const tape = require("tape"),
     jsdom = require("./jsdom"),
     d3 = Object.assign(require("../"), require("d3-selection"), require("d3-transition"));
-const Decimal = require('decimal.js')
+const { Decimal } = require('small-decimal')
 // d3-zoom expects global navigator and SVGElement to exist
 global.navigator = {};
 global.SVGElement = function(){};

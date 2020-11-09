@@ -45,10 +45,10 @@
     "parcel": "^1.12.4"
   },
   "peerDependencies": {
-    "decimal.js": "^10.2.1"
+    "small-decimal": "^1.0.0"
   },
   "devDependencies": {
-    "decimal.js": "^10.2.1",
+    "small-decimal": "^1.0.0",
     "eslint": "6",
     "jsdom": "^16.2.2",
     "rollup": "1",

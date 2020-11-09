@@ -7,7 +7,7 @@ import constant from "./constant.js";
 import ZoomEvent from "./event.js";
 import {Transform, identity} from "./transform.js";
 import noevent, {nopropagation} from "./noevent.js";
-import {Decimal} from 'decimal.js'
+import {Decimal} from 'small-decimal'
 // Ignore right-click, since that should open the context menu.
 // except for pinch-to-zoom, which is sent as a wheel+ctrlKey event
 function defaultFilter(event) {
@@ -107,9 +107,6 @@ export default function() {
   };
 
   zoom.scaleTo = function(selection, k, p, event) {
-
-
-
     zoom.transform(selection, function() {
       var e = extent.apply(this, arguments),
           t0 = this.__zoom,
@@ -142,7 +139,7 @@ export default function() {
   };
 
   function scale(transform, k) {
-    k = Decimal.max(scaleExtent[0], Decimal.min(scaleExtent[1], k));
+    k = Decimal.max(new Decimal(scaleExtent[0]), Decimal.min(new Decimal(scaleExtent[1]), k));
     return k.equals(transform.k) ? transform : new Transform(k, transform.x, transform.y);
   }
 
@@ -244,7 +241,7 @@ export default function() {
     if (!filter.apply(this, arguments)) return;
     var g = gesture(this, args).event(event),
         t = this.__zoom,
-        k = Decimal.max(scaleExtent[0], Decimal.min(scaleExtent[1], t.k.mul(new Decimal(2).pow(wheelDelta.apply(this, arguments))))),
+        k = Decimal.max(new Decimal(scaleExtent[0]), Decimal.min(new Decimal(scaleExtent[1]), t.k.mul(new Decimal(2 ** (wheelDelta.apply(this, arguments)))))),
         pRaw = pointer(event),
         p = [new Decimal(pRaw[0]), new Decimal(pRaw[1])];
 
@@ -292,7 +289,7 @@ export default function() {
 
     dragDisable(event.view);
     nopropagation(event);
-    g.mouse = [p, this.__zoom.invert(p), this.__zoom.translateAtCoordinateSpace(p)];
+    g.mouse = [p, null, this.__zoom.translateAtCoordinateSpace(p)];
     interrupt(this);
     g.start();
 
@@ -305,7 +302,7 @@ export default function() {
       var endRaw = pointer(event, currentTarget)
       var endDec = [new Decimal(endRaw[0]), new Decimal(endRaw[1])]
       g.event(event)
-       .zoom("mouse", constrain(translateCoordinateSpace(g.that.__zoom, g.mouse[0] = endDec, g.mouse[1], g.mouse[2]), g.extent, translateExtent));
+       .zoom("mouse", constrain(translateCoordinateSpace(g.that.__zoom, g.mouse[0] = endDec, null, g.mouse[2]), g.extent, translateExtent));
     }
 
     function mouseupped(event) {
