@@ -1,5 +1,5 @@
 {
-  "name": "d3-zoom",
+  "name": "@gfursten/d3-zoom",
   "version": "2.0.0",
   "description": "Pan and zoom SVG, HTML or Canvas using mouse or touch input.",
   "keywords": [

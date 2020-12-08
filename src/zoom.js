@@ -60,7 +60,7 @@ export default function() {
       translateExtent = [[-Infinity, -Infinity], [Infinity, Infinity]],
       duration = 250,
       interpolate = interpolateZoom,
-      listeners = dispatch("start", "zoom", "end"),
+      listeners = dispatch("start", "zoom", "zoom-suggest", "end"),
       touchstarting,
       touchfirst,
       touchending,
@@ -211,9 +211,17 @@ export default function() {
     },
     zoom: function(key, transform) {
       if (this.mouse && key !== "mouse") {this.mouse[1] = transform.invert(this.mouse[0]); this.mouse[2] = transform.translateAtCoordinateSpace(this.mouse[0])}
-      if (this.touch0 && key !== "touch") this.touch0[1] = transform.invert(this.touch0[0]);
-      if (this.touch1 && key !== "touch") this.touch1[1] = transform.invert(this.touch1[0]);
+      // if (this.touch0 && key !== "touch") this.touch0[1] = transform.invert(this.touch0[0]);
+      // if (this.touch1 && key !== "touch") this.touch1[1] = transform.invert(this.touch1[0]);
+
       this.that.__zoom = transform;
+
+      if (key === "touch") {
+        this.emit("zoom-suggest")
+        return this
+      }
+
+      // console.log('emitting')
       this.emit("zoom");
       return this;
     },
@@ -291,7 +299,7 @@ export default function() {
   }
 
   function mousedowned(event, ...args) {
-    if (touchending || !filter.apply(this, arguments)) return;
+    // if (touchending || !filter.apply(this, arguments)) return;
     var g = gesture(this, args, true).event(event),
         v = select(event.view).on("mousemove.zoom", mousemoved, true).on("mouseup.zoom", mouseupped, true),
         pRaw = pointer(event, currentTarget),
@@ -348,11 +356,15 @@ export default function() {
         started, i, t, p;
 
     nopropagation(event);
+    // console.log('touchstart assigning')
     for (i = 0; i < n; ++i) {
       t = touches[i], p = pointer(t, this);
-      p = [p, this.__zoom.invert(p), t.identifier];
+      p = [p, p, t.identifier, this.__zoom];
       if (!g.touch0) g.touch0 = p, started = true, g.taps = 1 + !!touchstarting;
-      else if (!g.touch1 && g.touch0[2] !== p[2]) g.touch1 = p, g.taps = 0;
+      else if (!g.touch1 && g.touch0[2] !== p[2]) {
+        g.touch1 = p, g.taps = 0;
+        // console.log('assiging second finger')
+      }
     }
 
     if (touchstarting) touchstarting = clearTimeout(touchstarting);
@@ -370,55 +382,63 @@ export default function() {
         touches = event.changedTouches,
         n = touches.length, i, t, p, l;
 
+    // console.log('touchmoved', touches, g.touch0, g.touch1)
     noevent(event);
     for (i = 0; i < n; ++i) {
       t = touches[i], p = pointer(t, this);
-      if (g.touch0 && g.touch0[2] === t.identifier) g.touch0[0] = p;
-      else if (g.touch1 && g.touch1[2] === t.identifier) g.touch1[0] = p;
+
+      if (g.touch0 && g.touch0[2] === t.identifier) {
+        // console.log('reassigning first touch')
+
+        g.touch0[0] = p;
+      } else if (g.touch1 && g.touch1[2] === t.identifier) {
+        // console.log('reassigning second touch')
+        g.touch1[0] = p;
+      }
     }
     t = g.that.__zoom;
+    var scaleFactor
     if (g.touch1) {
       var p0 = g.touch0[0], l0 = g.touch0[1],
           p1 = g.touch1[0], l1 = g.touch1[1],
           dp = (dp = p1[0] - p0[0]) * dp + (dp = p1[1] - p0[1]) * dp,
           dl = (dl = l1[0] - l0[0]) * dl + (dl = l1[1] - l0[1]) * dl;
-      t = scale(t, Math.sqrt(dp / dl));
-      p = [(p0[0] + p1[0]) / 2, (p0[1] + p1[1]) / 2];
-      l = [(l0[0] + l1[0]) / 2, (l0[1] + l1[1]) / 2];
+      // console.log('scale factor candidate', Math.sqrt(dp / dl))
+      var scaleFactorCandidate = new Decimal(Math.sqrt(dp / dl))
+      var originalK = g.touch0[3].k
+      t = lowerScale(t, originalK.mul(scaleFactorCandidate));
+      if (t.k.lessThan(new Decimal(5))) {
+        scaleFactor = t.k.div(originalK)
+      } else {
+        scaleFactor = scaleFactorCandidate
+      }
+
+      p = [new Decimal((p0[0] + p1[0]) / 2), new Decimal((p0[1] + p1[1]) / 2)];
+      l = [new Decimal((l0[0] + l1[0]) / 2).sub(g.touch0[3].x), new Decimal((l0[1] + l1[1]) / 2).sub(g.touch0[3].y)];
     }
-    else if (g.touch0) p = g.touch0[0], l = g.touch0[1];
+    else if (g.touch0) p = [new Decimal(g.touch0[0][0]), new Decimal(g.touch0[0][1])], l = [new Decimal(g.touch0[1][0]).sub(g.touch0[3].x), new Decimal(g.touch0[1][1]).sub(g.touch0[3].y)], scaleFactor = new Decimal(1);
     else return;
 
-    g.zoom("touch", constrain(translate(t, p, l), g.extent, translateExtent));
+    // console.log('scale factor', scaleFactor.toNumber())
+    // console.log('settingtouchmoved', !!g.touch1)
+    this.__touchmoved = constrain(translateCoordinateSpace(t, p, null, l, scaleFactor), g.extent, translateExtent)
+    g.zoom("touch", this.__touchmoved)
   }
 
   function touchended(event, ...args) {
     if (!this.__zooming) return;
+
+
     var g = gesture(this, args).event(event),
         touches = event.changedTouches,
         n = touches.length, i, t;
-
+    // console.log('touchend')
+    g.zoom("touchend", this.__touchmoved)
     nopropagation(event);
-    if (touchending) clearTimeout(touchending);
-    touchending = setTimeout(function() { touchending = null; }, touchDelay);
-    for (i = 0; i < n; ++i) {
-      t = touches[i];
-      if (g.touch0 && g.touch0[2] === t.identifier) delete g.touch0;
-      else if (g.touch1 && g.touch1[2] === t.identifier) delete g.touch1;
-    }
-    if (g.touch1 && !g.touch0) g.touch0 = g.touch1, delete g.touch1;
-    if (g.touch0) g.touch0[1] = this.__zoom.invert(g.touch0[0]);
-    else {
-      g.end();
-      // If this was a dbltap, reroute to the (optional) dblclick.zoom handler.
-      if (g.taps === 2) {
-        t = pointer(t, this);
-        if (Math.hypot(touchfirst[0] - t[0], touchfirst[1] - t[1]) < tapDistance) {
-          var p = select(this).on("dblclick.zoom");
-          if (p) p.apply(this, arguments);
-        }
-      }
-    }
+    delete g.touch0
+    delete g.touch1
+    return
+
   }
 
   zoom.wheelDelta = function(_) {

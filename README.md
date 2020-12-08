@@ -1,3 +1,8 @@
+# Warning
+Probably not what you are looking for.
+
+This is a fork of d3-zoom to sustain infinite zoom in https://github.com/furstenheim/infinite-mosaic
+
 # d3-zoom
 
 Panning and zooming are popular interaction techniques which let the user focus on a region of interest by restricting the view. It is easy to learn due to direct manipulation: click-and-drag to pan (translate), spin the wheel to zoom (scale), or use touch. Panning and zooming are widely used in web-based mapping, but can also be used with visualizations such as time-series and scatterplots.
