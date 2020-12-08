@@ -397,6 +397,8 @@ export default function() {
       }
     }
     t = g.that.__zoom;
+    var newX
+    var newY
     var scaleFactor
     if (g.touch1) {
       var p0 = g.touch0[0], l0 = g.touch0[1],
@@ -413,15 +415,20 @@ export default function() {
         scaleFactor = scaleFactorCandidate
       }
 
-      p = [new Decimal((p0[0] + p1[0]) / 2), new Decimal((p0[1] + p1[1]) / 2)];
-      l = [new Decimal((l0[0] + l1[0]) / 2).sub(g.touch0[3].x), new Decimal((l0[1] + l1[1]) / 2).sub(g.touch0[3].y)];
+      console.log('diff zoom', (p0[0] + p1[0]) / 2 - (l0[0] + l1[0]) / 2, (p0[1] + p1[1]) / 2 - (l0[1] + l1[1]) / 2)
+      newX = new Decimal((p0[0] + p1[0]) / 2).sub(new Decimal((l0[0] + l1[0]) / 2).sub(g.touch0[3].x).mul(scaleFactor))
+      newY = new Decimal((p0[1] + p1[1]) / 2).sub(new Decimal((l0[1] + l1[1]) / 2).sub(g.touch0[3].y).mul(scaleFactor))
     }
-    else if (g.touch0) p = [new Decimal(g.touch0[0][0]), new Decimal(g.touch0[0][1])], l = [new Decimal(g.touch0[1][0]).sub(g.touch0[3].x), new Decimal(g.touch0[1][1]).sub(g.touch0[3].y)], scaleFactor = new Decimal(1);
+    else if (g.touch0) {
+      newX = new Decimal(g.touch0[0][0] - g.touch0[1][0]).add(g.touch0[3].x)
+      newY = new Decimal(g.touch0[0][1] - g.touch0[1][1]).add(g.touch0[3].x)
+    }
     else return;
 
     // console.log('scale factor', scaleFactor.toNumber())
     // console.log('settingtouchmoved', !!g.touch1)
-    this.__touchmoved = constrain(translateCoordinateSpace(t, p, null, l, scaleFactor), g.extent, translateExtent)
+    // this.__touchmoved = constrain(translateCoordinateSpace(t, p, null, l, scaleFactor), g.extent, translateExtent)
+    this.__touchmoved = new Transform(t.k, newX, newY)
     g.zoom("touch", this.__touchmoved)
   }
 
