@@ -82,7 +82,7 @@ export default function() {
         .style("-webkit-tap-highlight-color", "rgba(0,0,0,0)");
   }
 
-  zoom.transform = function(collection, transform, point, event) {
+  zoom.transform = function(collection, transform, point, event, eventType = null) {
     var selection = collection.selection ? collection.selection() : collection;
     selection.property("__zoom", defaultTransform);
     if (collection !== selection) {
@@ -92,7 +92,7 @@ export default function() {
         gesture(this, arguments)
           .event(event)
           .start()
-          .zoom(null, typeof transform === "function" ? transform.apply(this, arguments) : transform)
+          .zoom(eventType, typeof transform === "function" ? transform.apply(this, arguments) : transform)
           .end();
       });
     }
@@ -101,6 +101,15 @@ export default function() {
   zoom.scaleBy = function(selection, k, p, event) {
     var k1 = typeof k === "function" ? k.apply(this, arguments) : k;
     zoom.scaleTo2(selection, function() {
+      var k0 = this.__zoom.k
+
+      return k0.mul(k1);
+    }, p, event, k1);
+  };
+
+  zoom.scaleBySuggest = function(selection, k, p, event) {
+    var k1 = typeof k === "function" ? k.apply(this, arguments) : k;
+    zoom.scaleToSuggest(selection, function() {
       var k0 = this.__zoom.k
 
       return k0.mul(k1);
@@ -127,6 +136,17 @@ export default function() {
           k1 = typeof k === "function" ? k.apply(this, arguments) : k;
       return constrain(translateCoordinateSpace(lowerScale(t0, k1), p0, p1, t0.translateAtCoordinateSpace(p0), scaleFactor), e, translateExtent);
     }, p, event);
+  };
+
+  zoom.scaleToSuggest = function(selection, k, p, event, scaleFactor) {
+    zoom.transform(selection, function() {
+      var e = extent.apply(this, arguments),
+          t0 = this.__zoom,
+          p0 = p == null ? centroid(e) : typeof p === "function" ? p.apply(this, arguments) : p,
+          p1 = t0.invert(p0),
+          k1 = typeof k === "function" ? k.apply(this, arguments) : k;
+      return constrain(translateCoordinateSpace(lowerScale(t0, k1), p0, p1, t0.translateAtCoordinateSpace(p0), scaleFactor), e, translateExtent);
+    }, p, event, "touch");
   };
 
   zoom.translateBy = function(selection, x, y, event) {
