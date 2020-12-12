@@ -99,11 +99,12 @@ export default function() {
   };
 
   zoom.scaleBy = function(selection, k, p, event) {
-    zoom.scaleTo(selection, function() {
-      var k0 = this.__zoom.k,
-          k1 = typeof k === "function" ? k.apply(this, arguments) : k;
+    var k1 = typeof k === "function" ? k.apply(this, arguments) : k;
+    zoom.scaleTo2(selection, function() {
+      var k0 = this.__zoom.k
+
       return k0.mul(k1);
-    }, p, event);
+    }, p, event, k1);
   };
 
   zoom.scaleTo = function(selection, k, p, event) {
@@ -113,7 +114,18 @@ export default function() {
           p0 = p == null ? centroid(e) : typeof p === "function" ? p.apply(this, arguments) : p,
           p1 = t0.invert(p0),
           k1 = typeof k === "function" ? k.apply(this, arguments) : k;
-      return constrain(translate(lowerScale(t0, k1), p0, p1), e, translateExtent);
+      return constrain(translateCoordinateSpace(lowerScale(t0, k1), p0, p1, t0.translateAtCoordinateSpace(p0), new Decimal(1)), e, translateExtent);
+    }, p, event);
+  };
+
+  zoom.scaleTo2 = function(selection, k, p, event, scaleFactor) {
+    zoom.transform(selection, function() {
+      var e = extent.apply(this, arguments),
+          t0 = this.__zoom,
+          p0 = p == null ? centroid(e) : typeof p === "function" ? p.apply(this, arguments) : p,
+          p1 = t0.invert(p0),
+          k1 = typeof k === "function" ? k.apply(this, arguments) : k;
+      return constrain(translateCoordinateSpace(lowerScale(t0, k1), p0, p1, t0.translateAtCoordinateSpace(p0), scaleFactor), e, translateExtent);
     }, p, event);
   };
 
@@ -415,7 +427,7 @@ export default function() {
         scaleFactor = scaleFactorCandidate
       }
 
-      console.log('diff zoom', (p0[0] + p1[0]) / 2 - (l0[0] + l1[0]) / 2, (p0[1] + p1[1]) / 2 - (l0[1] + l1[1]) / 2)
+      // console.log('diff zoom', (p0[0] + p1[0]) / 2 - (l0[0] + l1[0]) / 2, (p0[1] + p1[1]) / 2 - (l0[1] + l1[1]) / 2)
       newX = new Decimal((p0[0] + p1[0]) / 2).sub(new Decimal((l0[0] + l1[0]) / 2).sub(g.touch0[3].x).mul(scaleFactor))
       newY = new Decimal((p0[1] + p1[1]) / 2).sub(new Decimal((l0[1] + l1[1]) / 2).sub(g.touch0[3].y).mul(scaleFactor))
     }
